@@ -1,0 +1,3 @@
+Documento académico de ejemplo.
+Este contenido permite comprobar la integridad de una firma digital.
+

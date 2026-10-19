@@ -89,7 +89,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
             if result is not None:
                 return result
             if args.gui:
-                raise DependencyError("No se puede abrir la ventana: se necesita Tkinter y una sesión gráfica. Usa --cli para consola.")
+                raise DependencyError("No se puede abrir la ventana, se necesita Tkinter (apt instal tkinter). Use --cli para la versión de consola.")
             print("No está disponible la ventana gráfica; se iniciará el menú de consola.")
         return ConsoleMenu(controller, version).run()
     except (CryptoLabError, OSError) as error:

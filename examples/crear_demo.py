@@ -37,17 +37,27 @@ def main() -> int:
             password, output, CertificateNames(),
         )
         source = PROJECT / "examples" / "documento.txt"
+        (output / "documento_original.txt").write_bytes(source.read_bytes())
         encrypted = service.encrypt_file(source, bundle.public_key,
                                          output / "mensaje_cifrado.bin", RsaPadding.PKCS1)
         service.decrypt_file(encrypted, bundle.private_key, output / "mensaje_descifrado.txt",
                              password, RsaPadding.PKCS1)
         service.hash_file(source, output / "hash.sha256", HashAlgorithm.SHA256)
+        service.hash_file(source, output / "hash.md5", HashAlgorithm.MD5)
         signature = service.sign_file(source, bundle.private_key,
                                        output / "firma.bin", password)
         result = service.demonstrate_tampering(
             source, signature, bundle.certificate, output / "documento_alterado.txt",
         )
+        (output / "LEEME.txt").write_text(
+            "Material ficticio generado por examples/crear_demo.py.\n"
+            "La clave privada está cifrada con la contraseña que ingresaste al ejecutar el generador.\n"
+            "Esa contraseña no se guarda en este archivo. Usa PKCS#1 v1.5 para descifrar el ejemplo.\n"
+            "La firma del documento original debe ser válida; la de documento_alterado.txt debe fallar.\n",
+            encoding="utf-8",
+        )
         print("Resultados: {}".format(output))
+        print("Hashes: hash.sha256 y hash.md5.")
         print("Firma original: {}. Firma alterada: {}.".format(
             result.original.signature_valid, result.altered.signature_valid,
         ))

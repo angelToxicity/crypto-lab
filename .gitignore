@@ -226,3 +226,4 @@ __marimo__/
 *.pfx
 *.csr
 *.bin
+/demo/

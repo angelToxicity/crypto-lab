@@ -33,6 +33,18 @@ python3 -m tkinter
 
 La consola permite evaluar todas las operaciones sin instalar Tkinter.
 
+En una terminal interactiva, el menú principal y los campos con opciones se manejan con el teclado:
+
+- La opción activa aparece marcada con **`[x]` desde el inicio**. Las flechas mueven esa misma marca; siempre hay una sola opción seleccionada.
+- **Izquierda / Derecha**: recorrer las opciones; **Arriba / Abajo**: cambiar de fila conservando la columna. Si solo hay una fila, arriba y abajo también recorren sus opciones. **Inicio / Fin**: ir a los extremos.
+- **RePág / AvPág**: desplazarse una página cuando la lista no cabe en pantalla.
+- **Enter, X o Espacio**: abrir o confirmar la opción marcada.
+- **Esc o Q**: volver al menú desde una lista de opciones, o salir desde el menú principal.
+
+Las opciones se distribuyen en columnas del mismo ancho, con márgenes laterales, espacio entre columnas y una línea en blanco entre filas. El título, la descripción y los controles se presentan en bloques separados; la descripción se ajusta en hasta dos líneas y la opción activa se resalta. El contador de opciones aparece cuando hace falta desplazarse. La cantidad de columnas se adapta al ancho disponible y al tamaño de los nombres; en terminales estrechas se usa una sola columna. Si falta altura, el espaciado se reduce para mantener visible la selección y los controles. Al cambiar el tamaño de la terminal, la siguiente interacción ajusta la distribución conservando la opción seleccionada.
+
+Después de cada operación se mantiene el resultado visible hasta pulsar Enter. Los mensajes y las rutas se escriben de la forma habitual, y las contraseñas permanecen ocultas. El selector utiliza la biblioteca estándar de Python y adapta el desplazamiento al tamaño de la terminal en Windows y Linux. Si la entrada o la salida están redirigidas, o la terminal no admite el selector, se usa el menú numérico.
+
 La ventana usa el diseño de la maqueta: navegación lateral, tarjetas y controles redondeados, campos en dos columnas y resultados destacados. Se adapta a una columna al reducir el ancho. Colores y controles se dibujan con Tkinter/ttk; no requiere paquetes de temas, imágenes externas ni instalar tipografías. La barra de título sigue perteneciendo al sistema operativo.
 
 ## Funciones y criterios
@@ -63,6 +75,7 @@ cryptolab/
   files.py             Archivos temporales y salidas sin sobrescritura
   forms.py             Formularios y controlador compartidos
   console.py           Menú y entrada oculta de contraseñas
+  terminal.py          Selector con flechas, marcado [x] y desplazamiento
   gui.py               Ventana Tkinter
   app.py               Opciones de inicio y composición de dependencias
 examples/              Documento ficticio y generador de demostración
@@ -74,7 +87,7 @@ Clean Architecture se mantiene por dependencias: el dominio no realiza entrada/s
 
 ## Ejemplos y pruebas
 
-El documento de examples se usa para cifrado, hash y firma. Para generar claves y resultados nuevos, con datos ficticios y contraseña solicitada al ejecutarlos:
+El documento de [examples](examples/README.md) se usa para cifrado, hash y firma. Para generar un conjunto de prueba con claves y resultados nuevos, datos ficticios y una contraseña solicitada durante la ejecución:
 
 ~~~bash
 mkdir demo
@@ -95,7 +108,16 @@ La comprobación de ventana es opcional y requiere escritorio:
 python3 -m unittest tests.gui_smoke -v
 ~~~
 
-Validación local: 35 pruebas automáticas y una de escritorio satisfactorias, con Windows 11, Python 3.12.3 y OpenSSL 3.2.2. Cubren vectores de hash, CSR y certificado, ambos perfiles RSA, firma, alteración, errores, archivos y límites de dependencias. Se comprueba sintaxis Python 3.8, pero queda pendiente ejecutar esta versión en Ubuntu 22.04 y en un intérprete Python 3.8. No se presenta esa compatibilidad como validada.
+El selector de consola cuenta con 23 pruebas de selección automática, navegación, columnas uniformes, márgenes, separación entre bloques, ajuste de descripciones, cambio de tamaño, cancelación, listas largas, lectura de teclas y restauración de la terminal. La suite completa de 58 pruebas automáticas pasó en Windows 11 con Python 3.12.14 y OpenSSL 3.5.4, y en Ubuntu 24.04.3 LTS sobre WSL2 con Python 3.12.3 y OpenSSL 3.0.13 (paquete `3.0.13-0ubuntu3.7`). También se comprobó el teclado en terminales reales de Windows y Ubuntu, incluidos el menú principal y las opciones de un formulario. El arranque automático a consola funciona cuando no hay ventana disponible. En el Python de Ubuntu instalado en WSL falta Tkinter. En Ubuntu 24.04 con Tkinter y Xvfb, el smoke test de escritorio pasó y la prueba de redimensionado reprodujo el defecto de controles. La ejecución de Ubuntu 22.04 y Python 3.8 continúa pendiente.
+
+### Pruebas de la interfaz Tkinter
+
+Requieren un entorno Linux con Tkinter y escritorio, o Xvfb. El smoke test valida navegación y hash. La comprobación de redimensionado es una regresión conocida y debe fallar mientras siga el defecto:
+
+~~~bash
+python3 -m unittest tests.gui_smoke -v
+xvfb-run -a python3 -m unittest tests.gui_busy_resize -v
+~~~
 
 ## Entrega
 

@@ -5,6 +5,11 @@ import warnings
 
 from .domain import CryptoLabError, ValidationError
 from .forms import MODULES, Field, FormController
+from .terminal import TerminalMenu, TerminalUnavailable
+
+
+class _ModuleCancelled(Exception):
+    pass
 
 
 def read_password(prompt: str) -> str:
@@ -22,26 +27,45 @@ class ConsoleMenu:
     def __init__(self, controller: FormController, version: str):
         self._controller = controller
         self._version = version
+        self._selector = TerminalMenu()
 
     def run(self) -> int:
+        last_selection = 0
         try:
             while True:
-                print("\nCryptoLab | {}".format(self._version))
+                selection, interactive = self._select_module(last_selection)
+                if selection is None or selection == len(MODULES):
+                    return 0
+                last_selection = selection
+                completed = self._run_module(MODULES[selection])
+                if interactive and completed:
+                    input("\nPulsa Enter para volver al menú...")
+        except (EOFError, KeyboardInterrupt):
+            print("\nSesión finalizada.")
+            return 0
+
+    def _select_module(self, initial):
+        title = "CryptoLab | {}".format(self._version)
+        try:
+            selection = self._selector.select(
+                title, tuple(module.title for module in MODULES) + ("Salir",), initial,
+                tuple(module.description for module in MODULES) + ("Finalizar la sesión.",),
+            )
+            return selection, True
+        except TerminalUnavailable:
+            while True:
+                print("\n" + title)
                 for index, module in enumerate(MODULES, 1):
                     print("{}. {}".format(index, module.title))
                 print("0. Salir")
                 selection = input("Opción: ").strip()
                 if selection == "0":
-                    return 0
-                if not selection.isdigit() or not 1 <= int(selection) <= len(MODULES):
-                    print("Selecciona un número del menú.")
-                    continue
-                self._run_module(MODULES[int(selection) - 1])
-        except (EOFError, KeyboardInterrupt):
-            print("\nSesión finalizada.")
-            return 0
+                    return None, False
+                if selection.isdigit() and 1 <= int(selection) <= len(MODULES):
+                    return int(selection) - 1, False
+                print("Selecciona un número del menú.")
 
-    def _run_module(self, module) -> None:
+    def _run_module(self, module) -> bool:
         print("\n{}\n{}".format(module.title, module.description))
         values = {field.name: field.default for field in module.fields}
         try:
@@ -50,6 +74,9 @@ class ConsoleMenu:
                     values[field.name] = self._read_field(field)
             result = self._controller.execute(module.name, values)
             print("\n" + result.message)
+        except _ModuleCancelled:
+            print("\nOperación cancelada.")
+            return False
         except CryptoLabError as error:
             print("\nError: {}".format(error))
         finally:
@@ -57,6 +84,7 @@ class ConsoleMenu:
             for field in module.fields:
                 if field.kind == "password":
                     values[field.name] = ""
+        return True
 
     def _read_field(self, field: Field) -> str:
         if field.kind == "choice":
@@ -73,8 +101,18 @@ class ConsoleMenu:
             except ValidationError as error:
                 print(error)
 
+    def _choose(self, field: Field) -> str:
+        try:
+            initial = field.choices.index(field.default) if field.default in field.choices else 0
+            selection = self._selector.select(field.label, field.choices, initial)
+        except TerminalUnavailable:
+            return self._choose_numbered(field)
+        if selection is None:
+            raise _ModuleCancelled
+        return field.choices[selection]
+
     @staticmethod
-    def _choose(field: Field) -> str:
+    def _choose_numbered(field: Field) -> str:
         for index, choice in enumerate(field.choices, 1):
             print("  {}. {}".format(index, choice))
         while True:
